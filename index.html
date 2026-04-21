@@ -427,8 +427,17 @@ function doFlip(){if(idx>=deck.length)return;flipped=!flipped;g('flipper').class
 function rate(r){
   if(idx>=deck.length)return;
   const c=deck[idx];sc[r]++;
-  if(r==='k') addWord();
-  if(r==='h'){const e=hard.find(x=>x.ja===c.ja);if(e)e.count++;else hard.push({...c,count:1});saveHard();updateRP();}
+  if(r==='k'){
+    addWord();
+    // Xóa khỏi hard list nếu đã nhớ
+    const hi=hard.findIndex(x=>x.ja===c.ja);
+    if(hi>-1){hard.splice(hi,1);saveHard();updateRP();}
+  }
+  if(r==='h'){
+    const e=hard.find(x=>x.ja===c.ja);
+    if(e)e.count++;else hard.push({...c,count:1});
+    saveHard();updateRP();
+  }
   updateStats();idx++;stopSpeech();
   setTimeout(()=>{g('flipper').classList.remove('flipped');loadCard();},120);
 }
@@ -485,8 +494,12 @@ function switchMode(m){
   m==='fc'?loadCard():loadQuiz();
 }
 
-function updateStats(){g('sK').textContent=sc.k;g('sH').textContent=sc.h;g('sR').textContent=Math.max(0,deck.length-idx);}
-function updateRP(){
+function updateStats(){
+  g('sK').textContent=sc.k;
+  g('sH').textContent=hard.length; // tổng từ chưa nhớ còn lại
+  g('sR').textContent=Math.max(0,deck.length-idx);
+}
+  function updateRP(){
   const rp=g('rp');if(!hard.length){rp.classList.remove('show');return;}
   rp.classList.add('show');g('rcnt').textContent=hard.length;
   g('rlist').innerHTML=hard.map(c=>`<div class="ri"><span class="ri-ja">${c.ja}</span><span class="ri-vn">${c.vn.split('(')[0].trim()}</span><span class="ri-cat cat-${c.cat}">${c.cat}</span></div>`).join('');
