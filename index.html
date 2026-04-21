@@ -210,6 +210,13 @@ select{font-size:12px;padding:5px 8px;border-radius:8px;border:0.5px solid var(-
 <div id="app" style="display:none">
   <header>
     <div class="logo">JP Cards</div>
+    <div style="flex:1;margin:0 8px 0 4px;min-width:0">
+  <div id="prg-label" style="font-size:10px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+  <div style="height:4px;background:#334155;border-radius:2px;margin-top:3px">
+    <div id="prg-bar" style="height:100%;background:#38bdf8;border-radius:2px;width:0%;transition:width .4s"></div>
+  </div>
+  <div id="prg-next" style="font-size:9px;color:#64748b;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+</div>
     <div class="hcontrols" id="fc-hcontrols">
       <select id="cat">
         <option value="all">All</option>
@@ -325,6 +332,20 @@ select{font-size:12px;padding:5px 8px;border-radius:8px;border:0.5px solid var(-
 let ALL=[],deck=[],idx=0,flipped=false,hard=[],sc={k:0,h:0};
 let appMode='fc',qzAnswered=false,currentCard=null;
 const SK='jp_hard_v2';
+const SK_PRG = 'jp_prg_v1';
+let prg = JSON.parse(localStorage.getItem(SK_PRG)||'{"total":0,"streak":0,"lastDate":""}');
+
+const RANKS=[
+  {min:0,    title:'Thực tập sinh', icon:'🐣'},
+  {min:500,  title:'BrSE Vỡ lòng', icon:'📋'},
+  {min:1000, title:'BrSE Sơ cấp',  icon:'💻'},
+  {min:2000, title:'BrSE Xịn',     icon:'🔧'},
+  {min:3000, title:'Senior BrSE',  icon:'⚙️'},
+  {min:5000, title:'BrSE Leader',  icon:'🏗️'},
+  {min:10000,title:'Master BrSE',  icon:'🎌'},
+];
+function getRank(n){ return [...RANKS].reverse().find(r=>n>=r.min)||RANKS[0]; }
+function getNextRank(n){ return RANKS.find(r=>r.min>n)||null; }  
 
 // ── JLPT state ──
 let jlptLevel='N2', jlptType='vocab';
@@ -347,7 +368,7 @@ async function boot(){
     }));
   }catch(e){msg('Offline'); ALL=[];}
   try{const s=localStorage.getItem(SK);if(s)hard=JSON.parse(s);}catch(_){}
-  setTimeout(()=>{g('loading').style.display='none';g('app').style.display='flex';build();},300);
+  setTimeout(()=>{g('loading').style.display='none';g('app').style.display='flex';updatePrgUI();build();},300);
 }
 
 function msg(t){g('load-msg').textContent=t;}
@@ -406,6 +427,7 @@ function doFlip(){if(idx>=deck.length)return;flipped=!flipped;g('flipper').class
 function rate(r){
   if(idx>=deck.length)return;
   const c=deck[idx];sc[r]++;
+  if(r==='k') addWord();
   if(r==='h'){const e=hard.find(x=>x.ja===c.ja);if(e)e.count++;else hard.push({...c,count:1});saveHard();updateRP();}
   updateStats();idx++;stopSpeech();
   setTimeout(()=>{g('flipper').classList.remove('flipped');loadCard();},120);
@@ -470,6 +492,39 @@ function updateRP(){
   g('rlist').innerHTML=hard.map(c=>`<div class="ri"><span class="ri-ja">${c.ja}</span><span class="ri-vn">${c.vn.split('(')[0].trim()}</span><span class="ri-cat cat-${c.cat}">${c.cat}</span></div>`).join('');
 }
 function saveHard(){try{localStorage.setItem(SK,JSON.stringify(hard));}catch(_){}}
+function savePrg(){ localStorage.setItem(SK_PRG,JSON.stringify(prg)); }
+
+function addWord(){
+  const today=new Date().toISOString().slice(0,10);
+  if(prg.lastDate!==today){
+    const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+    prg.streak=prg.lastDate===yesterday?prg.streak+1:1;
+    prg.lastDate=today;
+  }
+  const oldRank=getRank(prg.total);
+  prg.total++;
+  savePrg();
+  const newRank=getRank(prg.total);
+  if(newRank.min!==oldRank.min) showRankUp(newRank);
+  updatePrgUI();
+}
+
+function updatePrgUI(){
+  const r=getRank(prg.total);
+  const next=getNextRank(prg.total);
+  const pct=next?((prg.total-r.min)/(next.min-r.min)*100):100;
+  g('prg-label').textContent=`${r.icon} ${r.title} · ${prg.total} từ 🔥${prg.streak}`;
+  g('prg-bar').style.width=Math.min(pct,100)+'%';
+  g('prg-next').textContent=next?`${next.min-prg.total} từ nữa → ${next.icon} ${next.title}`:'🎌 Đỉnh cao rồi!';
+}
+
+function showRankUp(rank){
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1e293b;border:1px solid #38bdf8;border-radius:20px;padding:28px 36px;text-align:center;z-index:999;animation:fadeIn .3s';
+  el.innerHTML=`<div style="font-size:48px">${rank.icon}</div><div style="font-size:18px;font-weight:700;color:#38bdf8;margin:8px 0">Thăng chức!</div><div style="color:#f1f5f9;font-size:15px">${rank.title}</div>`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2800);
+}  
 function toast(msg,dur=2200){const el=g('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),dur);}
 function exportCSV(){
   if(!hard.length){toast('Nothing to export yet');return;}
