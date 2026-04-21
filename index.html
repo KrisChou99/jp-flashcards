@@ -443,7 +443,7 @@ function answerQuiz(btn,correct){
   if(ok){sc.k++;if('vibrate'in navigator)navigator.vibrate(10);}
   else{sc.h++;if('vibrate'in navigator)navigator.vibrate(30);const e=hard.find(x=>x.ja===currentCard.ja);if(e)e.count++;else hard.push({...currentCard,count:1});saveHard();updateRP();}
   updateStats();g('qNext').classList.add('show');
-  if(ok)setTimeout(()=>{if(qzAnswered)nextQuiz();},3000);
+  if(ok)setTimeout(()=>{if(qzAnswered)nextQuiz();},5000);
 }
 
 function nextQuiz(){idx++;loadQuiz();}
