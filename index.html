@@ -744,7 +744,7 @@ function jAnswerQuiz(btn,correct){
     jSaveHard();
   }
   jUpdateStats();g('jqNext').classList.add('show');
-  if(ok)setTimeout(()=>{if(jqAnswered)jNextQuiz();},1200);
+  if(ok)setTimeout(()=>{if(jqAnswered)jNextQuiz();},5000);
 }
 
 function jNextQuiz(){jIdx++;jLoadQuiz();}
